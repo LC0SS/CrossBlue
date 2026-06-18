@@ -1,84 +1,109 @@
 const SUPABASE_URL = "https://cuwgepcdfhyzqvsqkluy.supabase.co";
 const SUPABASE_KEY = "sb_publishable_GhxhQFBF23fqxoMTlMCTwg_C5iJ2osF";
 
-// Variable globale pour stocker les tournois en mémoire locale
 let allTournaments = [];
 
 window.addEventListener('DOMContentLoaded', () => {
     if (typeof supabase === 'undefined') {
-        console.error("❌ Erreur : Le SDK Supabase n'est pas chargé. Vérifie ta connexion internet ou le lien dans index.html");
+        console.error("❌ Erreur : Le SDK Supabase n'est pas chargé.");
         return;
     }
-
-    // Initialisation du client Supabase
     const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     initApp(client);
 });
 
 async function initApp(client) {
-    console.log("Connexion à Supabase et récupération des tournois...");
-    
-    // Récupération de toutes les colonnes (y compris la nouvelle colonne 'region')
     const { data: tournaments, error } = await client
         .from('Tournaments')
         .select('*');
 
     if (error) {
-        console.error("❌ Erreur Supabase lors de la récupération :", error);
+        console.error("❌ Erreur Supabase :", error);
         return;
     }
 
-    // On sauvegarde les données dans notre variable globale
     allTournaments = tournaments || [];
-    console.log(`${allTournaments.length} tournois chargés avec succès.`);
 
-    // Premier affichage : on montre tout par défaut
-    displayTournaments(allTournaments);
+    // Récupération des éléments HTML des filtres
+    const regionFilter = document.getElementById('regionFilter');
+    const typeFilter = document.getElementById('typeFilter');
+    const hidePastFilter = document.getElementById('hidePastFilter');
 
-    // Mise en place de l'écouteur sur le menu déroulant HTML
-    const filterSelect = document.getElementById('regionFilter');
-    if (filterSelect) {
-        filterSelect.addEventListener('change', (event) => {
-            const selectedRegion = event.target.value;
-            filterAndDisplay(selectedRegion);
-        });
-    }
+    // Fonction déclenchée à chaque changement de filtre
+    const handleFilterChange = () => {
+        applyFilters(regionFilter.value, typeFilter.value, hidePastFilter.checked);
+    };
+
+    if (regionFilter) regionFilter.addEventListener('change', handleFilterChange);
+    if (typeFilter) typeFilter.addEventListener('change', handleFilterChange);
+    if (hidePastFilter) hidePastFilter.addEventListener('change', handleFilterChange);
+
+    // Premier affichage au chargement de la page
+    applyFilters(regionFilter.value, typeFilter.value, hidePastFilter.checked);
 }
 
-// Logique de filtrage optimisée pour la nouvelle structure de la BDD
-function filterAndDisplay(criterion) {
-    let filteredList = [];
+/**
+ * Fonction utilitaire qui traduit les chaînes de dates Bandai (ex: "March 28-29, 2026")
+ * en un objet Date JavaScript comparable.
+ */
+function parseTournamentDate(dateStr) {
+    if (!dateStr || dateStr === "Inconnue") return new Date(1970, 0, 1); // Date lointaine si inconnue
 
-    if (criterion === 'all') {
-        // Si l'utilisateur veut tout voir
-        filteredList = allTournaments;
-    } else {
-        // Filtrage direct et strict sur le champ 'region' de ta table
-        filteredList = allTournaments.filter(t => t.region === criterion);
+    try {
+        // Supprime les intervalles de jours (ex: "March 28-29, 2026" devient "March 28, 2026")
+        let cleanedDate = dateStr.replace(/-[0-9]+/g, '');
+        
+        const timestamp = Date.parse(cleanedDate);
+        if (!isNaN(timestamp)) {
+            return new Date(timestamp);
+        }
+    } catch (e) {
+        console.warn("Impossible de parser la date :", dateStr);
     }
+    return new Date(); // Retourne la date du jour par défaut en cas d'échec
+}
 
-    // Rafraîchissement de l'affichage avec la liste filtrée
+// Fonction de filtrage combiné (Région + Type + Date)
+function applyFilters(selectedRegion, selectedType, shouldHidePast) {
+    const today = new Date();
+    // On remet l'heure à minuit pour comparer uniquement les jours
+    today.setHours(0, 0, 0, 0);
+
+    const filteredList = allTournaments.filter(t => {
+        // 1. Condition Région
+        const matchRegion = (selectedRegion === 'all') || (t.region === selectedRegion);
+        
+        // 2. Condition Type
+        const matchType = (selectedType === 'all') || (t.type === selectedType);
+        
+        // 3. Condition Date Passée
+        let matchDate = true;
+        if (shouldHidePast) {
+            const tournamentDate = parseTournamentDate(t.date);
+            // Le tournoi est valide s'il est aujourd'hui ou dans le futur
+            matchDate = tournamentDate >= today;
+        }
+        
+        return matchRegion && matchType && matchDate;
+    });
+
     displayTournaments(filteredList);
 }
 
-// Fonction responsable de la génération des cartes HTML dans la page
 function displayTournaments(tournamentsList) {
     const calendarContainer = document.getElementById('calendar');
     if (!calendarContainer) return;
 
-    // On vide le conteneur avant d'ajouter les cartes filtrées
     calendarContainer.innerHTML = ""; 
 
-    // Si le filtre ne retourne aucun résultat
     if (tournamentsList.length === 0) {
         calendarContainer.innerHTML = `
-            <p style="text-align: center; width: 100%; color: var(--text-muted); grid-column: 1 / -1; margin-top: 2rem;">
-                Aucun tournoi planifié pour cette région pour le moment.
+            <p style="text-align: center; width: 100%; color: #888; grid-column: 1 / -1; margin-top: 2rem;">
+                Aucun tournoi ne correspond à ces critères de recherche.
             </p>`;
         return;
     }
 
-    // Génération dynamique des cartes de tournois
     tournamentsList.forEach(t => {
         const card = document.createElement('div');
         card.className = 'card';

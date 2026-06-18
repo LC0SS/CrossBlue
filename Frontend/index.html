@@ -161,14 +161,28 @@
     </header>
 
     <div class="filter-container">
-        <label for="regionFilter">Filtrer par Organisateur / Région :</label>
+        <label for="regionFilter">Filtrer par Région :</label>
         <select id="regionFilter">
-            <option value="all">Tous les tournois</option>
+            <option value="all">Toutes les régions</option>
             <option value="NorthAmerica">North America</option>
             <option value="Europe">Europe</option>
             <option value="Oceania">Oceania</option>
             <option value="LatinAmerica">Latin America</option>
-            </select>
+        </select>
+
+        <label for="typeFilter" style="margin-top: 0.5rem;">Type de Tournoi :</label>
+        <select id="typeFilter">
+            <option value="all">Tous les types</option>
+            <option value="Regional">🏆 Regionals</option>
+            <option value="TreasureCup">💰 Treasure Cups</option>
+        </select>
+    </div>
+
+    <div class="filter-container">
+        <label class="checkbox-label" style="margin-top: 0.5rem; display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+            <input type="checkbox" id="hidePastFilter" checked>
+            Masquer les tournois passés
+        </label>
     </div>
 
     <div class="grid" id="calendar">
