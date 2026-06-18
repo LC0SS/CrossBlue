@@ -1,22 +1,24 @@
 const SUPABASE_URL = "https://cuwgepcdfhyzqvsqkluy.supabase.co";
 const SUPABASE_KEY = "sb_publishable_GhxhQFBF23fqxoMTlMCTwg_C5iJ2osF";
 
-// On attend que la page ET le script Supabase soient bien présents
+// Variable globale pour stocker les tournois en mémoire locale
+let allTournaments = [];
+
 window.addEventListener('DOMContentLoaded', () => {
-    console.log("1. La page est chargée, initialisation de Supabase...");
-    
     if (typeof supabase === 'undefined') {
         console.error("❌ Erreur : Le SDK Supabase n'est pas chargé. Vérifie ta connexion internet ou le lien dans index.html");
         return;
     }
 
+    // Initialisation du client Supabase
     const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    loadTournaments(client);
+    initApp(client);
 });
 
-async function loadTournaments(client) {
-    console.log("2. Appel de la base de données...");
+async function initApp(client) {
+    console.log("Connexion à Supabase et récupération des tournois...");
     
+    // Récupération de toutes les colonnes (y compris la nouvelle colonne 'region')
     const { data: tournaments, error } = await client
         .from('Tournaments')
         .select('*');
@@ -26,23 +28,58 @@ async function loadTournaments(client) {
         return;
     }
 
-    console.log("3. Données reçues ! Nombre de tournois :", tournaments ? tournaments.length : 0);
-    console.log("Contenu des données :", tournaments);
+    // On sauvegarde les données dans notre variable globale
+    allTournaments = tournaments || [];
+    console.log(`${allTournaments.length} tournois chargés avec succès.`);
 
-    const calendarContainer = document.getElementById('calendar');
-    if (!calendarContainer) {
-        console.error("❌ Erreur : Impossible de trouver l'élément HTML avec l'id 'calendar'");
-        return;
+    // Premier affichage : on montre tout par défaut
+    displayTournaments(allTournaments);
+
+    // Mise en place de l'écouteur sur le menu déroulant HTML
+    const filterSelect = document.getElementById('regionFilter');
+    if (filterSelect) {
+        filterSelect.addEventListener('change', (event) => {
+            const selectedRegion = event.target.value;
+            filterAndDisplay(selectedRegion);
+        });
+    }
+}
+
+// Logique de filtrage optimisée pour la nouvelle structure de la BDD
+function filterAndDisplay(criterion) {
+    let filteredList = [];
+
+    if (criterion === 'all') {
+        // Si l'utilisateur veut tout voir
+        filteredList = allTournaments;
+    } else {
+        // Filtrage direct et strict sur le champ 'region' de ta table
+        filteredList = allTournaments.filter(t => t.region === criterion);
     }
 
+    // Rafraîchissement de l'affichage avec la liste filtrée
+    displayTournaments(filteredList);
+}
+
+// Fonction responsable de la génération des cartes HTML dans la page
+function displayTournaments(tournamentsList) {
+    const calendarContainer = document.getElementById('calendar');
+    if (!calendarContainer) return;
+
+    // On vide le conteneur avant d'ajouter les cartes filtrées
     calendarContainer.innerHTML = ""; 
 
-    if (!tournaments || tournaments.length === 0) {
-        calendarContainer.innerHTML = "<p>Aucun tournoi trouvé dans la base de données.</p>";
+    // Si le filtre ne retourne aucun résultat
+    if (tournamentsList.length === 0) {
+        calendarContainer.innerHTML = `
+            <p style="text-align: center; width: 100%; color: var(--text-muted); grid-column: 1 / -1; margin-top: 2rem;">
+                Aucun tournoi planifié pour cette région pour le moment.
+            </p>`;
         return;
     }
 
-    tournaments.forEach((t, index) => {
+    // Génération dynamique des cartes de tournois
+    tournamentsList.forEach(t => {
         const card = document.createElement('div');
         card.className = 'card';
         
@@ -55,5 +92,4 @@ async function loadTournaments(client) {
         
         calendarContainer.appendChild(card);
     });
-    console.log("4. Injection dans le HTML terminée !");
 }
