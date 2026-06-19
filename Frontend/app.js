@@ -108,10 +108,13 @@ function displayTournaments(tournamentsList) {
         const card = document.createElement('div');
         card.className = 'card';
         
+        // Exemple de modification dans ton app.js pour l'affichage :
         card.innerHTML = `
-            <h3>🏆 ${t.organizer || 'Organisateur inconnu'}</h3>
+            <h3>👥 ${t.organizer || 'Organisateur inconnu'}</h3>
             <p>📅 <strong>Date :</strong> ${t.date || 'Non spécifiée'}</p>
-            <p>📍 <strong>Lieu :</strong> ${t.venue || 'Non spécifié'}</p>
+            <p>🌍 <strong>Pays :</strong> ${t.country}</p>
+            <p>🏢 <strong>Ville :</strong> ${t.city}</p>
+            <p>📍 <strong>Lieu :</strong> ${t.venue_name}</p>
             <a href="${t.link || '#'}" target="_blank" class="btn">S'inscrire / Détails</a>
         `;
         
