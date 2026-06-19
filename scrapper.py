@@ -153,7 +153,7 @@ def scrape_page(url, tournament_type):
             a_tag = dd.find('a')
             if a_tag and 'href' in a_tag.attrs:
                 link = a_tag['href']
-                continue
+                # On ne met plus "continue" ici pour laisser le reste du script s'exécuter
             
             if "Date:" in text and "Venue:" in text:
                 parts = text.split("Venue:")
@@ -173,22 +173,21 @@ def scrape_page(url, tournament_type):
         # --- TRAITEMENT EFFICACE DU LIEU ---
         venue_name, city, country = get_clean_location(venue)
             
-        # =========================================================================
-        # NOUVELLE CLÉ UNIQUE : Combinaison de la Date + Venue (Adresse brute) + Type
-        # =========================================================================
+        # Clé unique : Date + Venue (Adresse brute) + Type
         raw_string = f"{date}||{venue}||{tournament_type}"
         custom_id = hashlib.md5(raw_string.encode('utf-8')).hexdigest()
         
         page_tournaments.append({
-            "id": custom_id,          # Notre clé unique composite (Date + Venue + Type)
-            "organizer": organizer,   # Pratique pour garder l'organisateur (ex: Cartamundi, etc.)
+            "id": custom_id,
+            "organizer": organizer,
             "date": date,
             "venue": venue,           
             "venue_name": venue_name, 
             "city": city,             
             "country": country,       
             "region": current_region,
-            "type": tournament_type
+            "type": tournament_type,
+            "link": link              # 👈 AJOUTÉ ICI ! Ton lien va enfin monter dans Supabase
         })
 
     return page_tournaments
