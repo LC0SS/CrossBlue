@@ -1,3 +1,4 @@
+import os
 import requests
 from bs4 import BeautifulSoup
 from supabase import create_client, Client
@@ -6,8 +7,12 @@ from geopy.geocoders import Nominatim
 import re
 
 SUPABASE_URL = "https://cuwgepcdfhyzqvsqkluy.supabase.co"
-SUPABASE_KEY = "sb_publishable_GhxhQFBF23fqxoMTlMCTwg_C5iJ2osF"
 
+# 🔏 SÉCURITÉ : On cherche la clé secrète "service_role" dans l'environnement de ta machine.
+# Si elle n'est pas trouvée, on met la clé publique par défaut (qui sera bridée par le RLS).
+SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "sb_publishable_GhxhQFBF23fqxoMTlMCTwg_C5iJ2osF")
+
+# Initialisation du client Supabase
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # Initialisation du géocodeur (on lui donne un nom d'application unique)
