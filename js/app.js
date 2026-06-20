@@ -162,6 +162,7 @@ function initCalendarView(displayName, preferredRegion) {
 
     // Algorithme de filtrage et rendu des cartes
     function applyFilters() {
+        console.log("Tournois reçus de la BDD :", allTournaments);
         const selectedRegion = regionFilter.value;
         const selectedCountry = countryFilter.value;
         const selectedType = typeFilter.value;
