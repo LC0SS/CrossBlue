@@ -92,21 +92,41 @@ function initCalendarView(displayName, preferredRegion) {
 
     let allTournaments = []; // Stockage local des tournois pour filtrer côté client
 
-    // 🎯 Application de la région préférée de l'utilisateur
-    if (preferredRegion) {
+    // 🎯 Application de la région préférée ou des filtres mémorisés
+    if (localStorage.getItem('filter_region')) {
+        regionFilter.value = localStorage.getItem('filter_region');
+    } else if (preferredRegion) {
         regionFilter.value = preferredRegion;
     } else {
         regionFilter.value = "all";
     }
 
-    // Écouteurs d'événements pour mettre à jour l'affichage lors d'un changement de filtre
+    // Récupération des autres filtres sauvegardés
+    typeFilter.value = localStorage.getItem('filter_type') || "all";
+    hidePastFilter.checked = localStorage.getItem('filter_hidePast') === "true";
+
+    // Écouteurs d'événements pour mettre à jour l'affichage et sauvegarder l'état
     regionFilter.addEventListener('change', () => {
+        localStorage.setItem('filter_region', regionFilter.value);
+        localStorage.removeItem('filter_country'); // Reset le pays si la région change
         updateCountryOptions();
         applyFilters();
     });
-    countryFilter.addEventListener('change', applyFilters);
-    typeFilter.addEventListener('change', applyFilters);
-    hidePastFilter.addEventListener('change', applyFilters);
+
+    countryFilter.addEventListener('change', () => {
+        localStorage.setItem('filter_country', countryFilter.value);
+        applyFilters();
+    });
+
+    typeFilter.addEventListener('change', () => {
+        localStorage.setItem('filter_type', typeFilter.value);
+        applyFilters();
+    });
+
+    hidePastFilter.addEventListener('change', () => {
+        localStorage.setItem('filter_hidePast', hidePastFilter.checked);
+        applyFilters();
+    });
 
     // Chargement initial des données depuis Supabase
     fetchTournaments();
@@ -157,7 +177,14 @@ function initCalendarView(displayName, preferredRegion) {
         });
 
         countryFilterContainer.style.display = countries.length > 0 ? 'flex' : 'none';
-        countryFilter.value = 'all';
+        
+        // 🔄 Restauration du filtre pays sauvegardé si toujours cohérent avec la région
+        const savedCountry = localStorage.getItem('filter_country');
+        if (savedCountry && countries.includes(savedCountry)) {
+            countryFilter.value = savedCountry;
+        } else {
+            countryFilter.value = 'all';
+        }
     }
 
     // Algorithme de filtrage et rendu des cartes
@@ -186,18 +213,16 @@ function initCalendarView(displayName, preferredRegion) {
 
         calendarGrid.innerHTML = filtered.map(t => {
             // 🧹 Extraction propre du premier jour et de l'année
-            // On sépare la chaîne par espaces (ex: ["August", "15-16", "2026"])
             const dateParts = (t.date || '').split(' ');
             
             let formattedDate = t.date; // Fallback si la structure est inconnue
 
             if (dateParts.length >= 3) {
                 const month = dateParts[0];
-                // Si le jour contient un tiret (15-16), on ne garde que le premier jour (15)
                 const day = dateParts[1].split('-')[0];
                 const year = dateParts[2];
 
-                // On reconstruit un format standardisé "Month DD, YYYY" (ex: "August 15, 2026")
+                // On reconstruit un format standardisé "Month DD, YYYY"
                 const standardDate = new Date(`${month} ${day}, ${year}`);
                 
                 if (!isNaN(standardDate)) {
