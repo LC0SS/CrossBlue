@@ -185,19 +185,36 @@ function initCalendarView(displayName, preferredRegion) {
         }
 
         calendarGrid.innerHTML = filtered.map(t => {
-            // Formatage de la date en français (JJ/MM/AAAA)
-            const dateObj = new Date(t.date);
-            const formattedDate = dateObj.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            // 🧹 Extraction propre du premier jour et de l'année
+            // On sépare la chaîne par espaces (ex: ["August", "15-16", "2026"])
+            const dateParts = (t.date || '').split(' ');
+            
+            let formattedDate = t.date; // Fallback si la structure est inconnue
+
+            if (dateParts.length >= 3) {
+                const month = dateParts[0];
+                // Si le jour contient un tiret (15-16), on ne garde que le premier jour (15)
+                const day = dateParts[1].split('-')[0];
+                const year = dateParts[2];
+
+                // On reconstruit un format standardisé "Month DD, YYYY" (ex: "August 15, 2026")
+                const standardDate = new Date(`${month} ${day}, ${year}`);
+                
+                if (!isNaN(standardDate)) {
+                    formattedDate = standardDate.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                }
+            }
 
             return `
                 <div class="card">
                     <div>
-                        <h3>${t.name || 'Tournoi One Piece'}</h3>
-                        <p><strong>📅 Date :</strong> ${formattedDate}</p>
-                        <p><strong>📍 Lieu :</strong> ${t.location || 'Non renseigné'} (${t.country || t.region})</p>
-                        <p><strong>🏆 Type :</strong> ${t.type === 'TreasureCup' ? '💰 Treasure Cup' : '🏆 Regional'}</p>
+                        <h3>👥 ${t.organizer || 'Organisateur inconnu'}</h3>
+                        <p>📅 <strong>Date :</strong> ${formattedDate}</p>
+                        <p>🌍 <strong>Pays :</strong> ${t.country || 'Non spécifié'}</p>
+                        <p>🏢 <strong>Ville :</strong> ${t.city || 'Non spécifiée'}</p>
+                        <p>📍 <strong>Lieu :</strong> ${t.venue_name || 'Non spécifié'}</p>
                     </div>
-                    ${t.link ? `<a href="${t.link}" target="_blank" class="btn">Voir l'événement</a>` : ''}
+                    ${t.link ? `<a href="${t.link}" target="_blank" class="btn">S'inscrire / Détails</a>` : ''}
                 </div>
             `;
         }).join('');
